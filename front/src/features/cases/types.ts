@@ -13,6 +13,7 @@ export interface CrossValidationResult {
   field: string;
   expected: string;
   extracted: string;
+  normalization: string[];
   comparison: string;
   critical: boolean;
   passed: boolean;
@@ -38,6 +39,7 @@ export interface RefsEvidencias {
 export interface Documento {
   id: string;
   tipo_documento_id: string;
+  nombre_original: string;
   ubicacion_s3: string;
   hash_integridad: string;
   fecha_recepcion: string;
@@ -81,6 +83,45 @@ export interface CasesListItem {
 
 export interface CasesPage {
   items: CasesListItem[];
+  limit: number;
+  offset: number;
+}
+
+export interface CrossValidationResultCliente {
+  field: string;
+  expected: string;
+  extracted: string;
+  passed: boolean;
+  reason: string;
+}
+
+export interface DocumentoCliente {
+  nombre_archivo: string;
+  content_type: string;
+  file_size: number;
+  fecha_recepcion: string;
+}
+
+export interface CaseCliente {
+  id: string;
+  fecha_creacion: string;
+  estado: string;
+  veredicto: Veredicto | null;
+  motivos: string | null;
+  campos_extraidos: Record<string, unknown> | null;
+  validaciones_cruzadas: CrossValidationResultCliente[] | null;
+  documento: DocumentoCliente | null;
+}
+
+export interface CaseClienteListItem {
+  id: string;
+  fecha_creacion: string;
+  estado: string;
+  veredicto: Veredicto | null;
+}
+
+export interface CasesPageCliente {
+  items: CaseClienteListItem[];
   limit: number;
   offset: number;
 }

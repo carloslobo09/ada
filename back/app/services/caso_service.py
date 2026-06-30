@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import hashlib
-from dataclasses import asdict
-from datetime import date
 from pathlib import Path
 from typing import Any
 
 from app.domain.cross_validation import CrossValidationResult
-from app.domain.dni import NormalizedDni
+from app.domain.extraction import NormalizedExtraction
 from app.models.caso import Caso
 from app.repositories.caso_repo import CasoRepository
 from app.repositories.decision_repo import DecisionRepository
@@ -15,7 +13,7 @@ from app.repositories.documento_repo import DocumentoRepository
 from app.services.cross_validation.engine import CrossValidationEngine
 from app.services.decision_aggregator import aggregate
 from app.services.extraction.protocol import Extractor
-from app.services.normalization import normalize_dni
+from app.services.normalization import normalize_extraction
 from app.services.rules.engine import RuleEngine, RuleResult
 from app.storage.filesystem import FilesystemStorage
 
@@ -30,7 +28,7 @@ class CasoService:
         decision_repository: DecisionRepository,
         storage: FilesystemStorage,
         extractor: Extractor,
-        rule_engine: RuleEngine[NormalizedDni],
+        rule_engine: RuleEngine,
         cross_engine: CrossValidationEngine,
         tipo_documento_id: str,
         prompt_version_id: str,
@@ -76,14 +74,12 @@ class CasoService:
                 )
 
         extraction = self._extractor.extract(Path(documento.ubicacion_s3), content_type)
-        normalized = normalize_dni(extraction)
+        normalized = normalize_extraction(extraction)
         rule_results = self._rule_engine.evaluate(normalized)
 
         cross_results: list[CrossValidationResult] = []
         if expected:
-            cross_results = self._cross_engine.evaluate(
-                extracted_values_for_cross(normalized), expected
-            )
+            cross_results = self._cross_engine.evaluate(normalized.values, expected)
 
         agg = aggregate(rule_results, cross_results)
         decision = self._decisiones.create(
@@ -93,11 +89,11 @@ class CasoService:
             refs_evidencias={
                 "salida_modelo": {
                     "ref_version_prompt": self._prompt_version_id,
-                    "contenido_raw": extraction.raw_response,
+                    "contenido_raw": normalized.raw,
                 },
                 "resultado_extraccion": {
-                    "campos_normalizados": _campos_sin_confianzas(normalized),
-                    "confianza_por_campo": dict(normalized.confianzas),
+                    "campos_normalizados": dict(normalized.values),
+                    "confianza_por_campo": dict(normalized.confidences),
                 },
                 "evaluacion_reglas": [rule_result_to_dict(r) for r in rule_results],
             },
@@ -118,41 +114,12 @@ class CasoService:
         ruta = self._storage.save(caso_id, filename, content)
         return self._documentos.create(
             tipo_documento_id=self._tipo_documento_id,
+            nombre_original=filename,
             ubicacion_s3=str(ruta),
             hash_integridad=hashlib.sha256(content).hexdigest(),
             content_type=content_type,
             file_size=len(content),
         )
-
-
-def extracted_values_for_cross(normalized: NormalizedDni) -> dict[str, str]:
-    return {
-        "numero_dni": normalized.numero_dni,
-        "nombre_completo": normalized.nombre_completo,
-        "fecha_nacimiento": normalized.fecha_nacimiento.isoformat()
-        if normalized.fecha_nacimiento
-        else "",
-        "fecha_emision": normalized.fecha_emision.isoformat()
-        if normalized.fecha_emision
-        else "",
-        "fecha_vencimiento": normalized.fecha_vencimiento.isoformat()
-        if normalized.fecha_vencimiento
-        else "",
-        "sexo": normalized.sexo,
-        "nacionalidad": normalized.nacionalidad,
-        "lugar_nacimiento": normalized.lugar_nacimiento,
-        "numero_tramite": normalized.numero_tramite,
-        "tipo_documento": normalized.tipo_documento,
-        "domicilio": normalized.domicilio,
-    }
-
-
-def normalized_to_dict(normalized: NormalizedDni) -> dict[str, Any]:
-    data = asdict(normalized)
-    for key, value in list(data.items()):
-        if isinstance(value, date):
-            data[key] = value.isoformat()
-    return data
 
 
 def rule_result_to_dict(result: RuleResult) -> dict[str, Any]:
@@ -169,6 +136,7 @@ def cross_result_to_dict(result: CrossValidationResult) -> dict[str, Any]:
         "field": result.field,
         "expected": result.expected,
         "extracted": result.extracted,
+        "normalization": [n.value for n in result.normalization],
         "comparison": result.comparison.value,
         "critical": result.critical,
         "passed": result.passed,
@@ -176,20 +144,7 @@ def cross_result_to_dict(result: CrossValidationResult) -> dict[str, Any]:
     }
 
 
-def _campos_sin_confianzas(normalized: NormalizedDni) -> dict[str, Any]:
-    data = asdict(normalized)
-    campos: dict[str, Any] = {}
-    for key, value in data.items():
-        if key == "confianzas":
-            continue
-        if isinstance(value, date):
-            campos[key] = value.isoformat()
-        else:
-            campos[key] = value
-    return campos
-
-
-def _confianza_global(normalized: NormalizedDni) -> float | None:
-    if not normalized.confianzas:
+def _confianza_global(normalized: NormalizedExtraction) -> float | None:
+    if not normalized.confidences:
         return None
-    return min(normalized.confianzas.values())
+    return min(normalized.confidences.values())

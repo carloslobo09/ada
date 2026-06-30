@@ -120,6 +120,72 @@ def test_cliente_no_puede_ver_caso_ajeno(
     assert response.status_code == 404
 
 
+def test_cliente_recibe_vista_resumida(
+    client: TestClient, cliente_token: str, seeded_tipo_id: str
+) -> None:
+    caso = client.post(
+        "/cases",
+        files={"file": ("dni.png", io.BytesIO(b"x"), "image/png")},
+        data={"tipo_documento_id": seeded_tipo_id},
+        headers=auth_headers(cliente_token),
+    ).json()
+    # campos visibles
+    assert "id" in caso
+    assert "fecha_creacion" in caso
+    assert "estado" in caso
+    assert "veredicto" in caso
+    assert "motivos" in caso
+    assert "campos_extraidos" in caso
+    assert "documento" in caso
+    # campos internos NO visibles
+    assert "ref_documento" not in caso
+    assert "ref_decision" not in caso
+    assert "ref_usuario_cliente" not in caso
+    assert "ref_usuario_recontrol" not in caso
+    assert "estado_recontrol" not in caso
+    assert "decision" not in caso
+    # documento light, sin hash ni ruta interna
+    documento = caso["documento"]
+    assert "nombre_archivo" in documento
+    assert "hash_integridad" not in documento
+    assert "ubicacion_s3" not in documento
+    assert "tipo_documento_id" not in documento
+
+
+def test_entrenador_recibe_vista_completa(
+    client: TestClient, entrenador_token: str, seeded_tipo_id: str
+) -> None:
+    caso = client.post(
+        "/cases",
+        files={"file": ("dni.png", io.BytesIO(b"x"), "image/png")},
+        data={"tipo_documento_id": seeded_tipo_id},
+        headers=auth_headers(entrenador_token),
+    ).json()
+    assert "ref_documento" in caso
+    assert "ref_decision" in caso
+    assert "estado_recontrol" in caso
+    assert "decision" in caso
+    assert "documento" in caso
+    assert caso["documento"]["hash_integridad"]
+
+
+def test_listado_cliente_no_expone_estado_recontrol(
+    client: TestClient, cliente_token: str, seeded_tipo_id: str
+) -> None:
+    client.post(
+        "/cases",
+        files={"file": ("dni.png", io.BytesIO(b"x"), "image/png")},
+        data={"tipo_documento_id": seeded_tipo_id},
+        headers=auth_headers(cliente_token),
+    )
+    listado = client.get("/cases", headers=auth_headers(cliente_token)).json()
+    assert len(listado["items"]) >= 1
+    item = listado["items"][0]
+    assert "veredicto" in item
+    assert "estado_recontrol" not in item
+    assert "decision" not in item
+
+
 def test_cliente_no_puede_revisar(
     client: TestClient, cliente_token: str, seeded_tipo_id: str
 ) -> None:
@@ -162,6 +228,7 @@ def test_cliente_no_puede_crear_prompt_version(
         json={
             "tipo_documento_id": seeded_tipo_id,
             "prompt_text": "Prompt",
+            "extraction_fields": [{"name": "campo", "label": "Campo"}],
             "cross_validation_config": [],
         },
         headers=auth_headers(cliente_token),
@@ -177,6 +244,7 @@ def test_entrenador_puede_crear_prompt_version(
         json={
             "tipo_documento_id": seeded_tipo_id,
             "prompt_text": "Prompt v2",
+            "extraction_fields": [{"name": "campo", "label": "Campo"}],
             "cross_validation_config": [],
         },
         headers=auth_headers(entrenador_token),

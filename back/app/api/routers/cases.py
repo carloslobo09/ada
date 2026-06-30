@@ -14,7 +14,23 @@ from app.api.dependencies import (
     require_roles,
 )
 from app.models.usuario import Usuario
-from app.schemas.caso import CasoListItem, CasoListOut, CasoOut, ReviewRequest
+from app.schemas.caso import (
+    CasoClienteListItem,
+    CasoClienteListOut,
+    CasoClienteOut,
+    CasoListItem,
+    CasoListOut,
+    CasoOut,
+    ReviewRequest,
+    to_cliente_list_item,
+    to_cliente_out,
+)
+from app.services.extraction.errors import (
+    ExtractorAuthError,
+    ExtractorInvalidResponseError,
+    ExtractorRateLimitedError,
+    ExtractorUnavailableError,
+)
 from app.storage.filesystem import FilesystemStorage
 
 router = APIRouter(prefix="/cases", tags=["cases"])
@@ -25,7 +41,7 @@ ALLOWED_MIME: frozenset[str] = frozenset(
 MAX_BYTES = 10 * 1024 * 1024
 
 
-@router.post("", response_model=CasoOut, status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED)
 async def create_case(
     user: CurrentUserDep,
     session: SessionDep,
@@ -45,7 +61,7 @@ async def create_case(
             ),
         ),
     ] = None,
-) -> CasoOut:
+) -> CasoOut | CasoClienteOut:
     if file.content_type not in ALLOWED_MIME:
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
@@ -69,30 +85,52 @@ async def create_case(
         tipo_documento_id=tipo_documento_id,
     )
 
-    caso = service.process(
-        filename=file.filename or "documento",
-        content=content,
-        content_type=file.content_type,
-        expected=parsed_expected,
-        ref_usuario_cliente=user.id,
-    )
+    try:
+        caso = service.process(
+            filename=file.filename or "documento",
+            content=content,
+            content_type=file.content_type,
+            expected=parsed_expected,
+            ref_usuario_cliente=user.id,
+        )
+    except ExtractorAuthError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)
+        ) from exc
+    except ExtractorRateLimitedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(exc)
+        ) from exc
+    except ExtractorUnavailableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        ) from exc
+    except ExtractorInvalidResponseError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)
+        ) from exc
+
+    if user.rol == "cliente":
+        return to_cliente_out(caso)
     return CasoOut.model_validate(caso)
 
 
-@router.get("/{case_id}", response_model=CasoOut)
+@router.get("/{case_id}")
 def get_case(
     case_id: str,
     user: CurrentUserDep,
     repository: CasoRepositoryDep,
-) -> CasoOut:
+) -> CasoOut | CasoClienteOut:
     caso = repository.get(case_id)
     if caso is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Caso no encontrado.")
     _ensure_visible_to_user(caso, user)
+    if user.rol == "cliente":
+        return to_cliente_out(caso)
     return CasoOut.model_validate(caso)
 
 
-@router.get("", response_model=CasoListOut)
+@router.get("")
 def list_cases(
     user: CurrentUserDep,
     repository: CasoRepositoryDep,
@@ -101,7 +139,7 @@ def list_cases(
     recontrol: Literal["pendiente", "correcto", "incorrecto"] | None = Query(
         default=None, description="Filtra la bandeja por estado de Re Control."
     ),
-) -> CasoListOut:
+) -> CasoListOut | CasoClienteListOut:
     ref = user.id if user.rol == "cliente" else None
     casos = repository.list(
         limit=limit,
@@ -109,8 +147,17 @@ def list_cases(
         estado_recontrol=recontrol,
         ref_usuario_cliente=ref,
     )
-    items = [CasoListItem.model_validate(c) for c in casos]
-    return CasoListOut(items=items, limit=limit, offset=offset)
+    if user.rol == "cliente":
+        return CasoClienteListOut(
+            items=[to_cliente_list_item(c) for c in casos],
+            limit=limit,
+            offset=offset,
+        )
+    return CasoListOut(
+        items=[CasoListItem.model_validate(c) for c in casos],
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.patch("/{case_id}/review", response_model=CasoOut)

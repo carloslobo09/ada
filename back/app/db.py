@@ -48,7 +48,11 @@ def _seed_initial_data() -> None:
     from app.repositories.usuario_repo import UsuarioRepository
     from app.services.auth_service import AuthService, seed_default_users_if_missing
     from app.services.prompt_version_service import seed_default_prompt_version_if_missing
-    from app.services.seed.dni_v1 import DNI_CROSS_VALIDATION_CONFIG_V1, DNI_PROMPT_V1
+    from app.services.seed.dni_v1 import (
+        DNI_CROSS_VALIDATION_CONFIG_V1,
+        DNI_EXTRACTION_FIELDS_V1,
+        DNI_PROMPT_V1,
+    )
     from app.services.tipo_documento_service import seed_default_tipo_documento_if_missing
 
     session = _SessionFactory()
@@ -74,6 +78,7 @@ def _seed_initial_data() -> None:
             prompt_repo,
             tipo_documento_id=tipo.id,
             prompt_text=DNI_PROMPT_V1,
+            extraction_fields=DNI_EXTRACTION_FIELDS_V1,
             cross_validation_config=DNI_CROSS_VALIDATION_CONFIG_V1,
         )
     finally:

@@ -4,10 +4,11 @@ import { ProtectedRoute } from "@/features/auth/components/ProtectedRoute";
 import { LoginPage } from "@/features/auth/pages/LoginPage";
 import { CaseDetailPage } from "@/features/cases/pages/CaseDetailPage";
 import { CasesListPage } from "@/features/cases/pages/CasesListPage";
-import { ReControlPage } from "@/features/cases/pages/ReControlPage";
+import { TipoDocumentoDetailPage } from "@/features/document-types/pages/TipoDocumentoDetailPage";
+import { TiposDocumentoPage } from "@/features/document-types/pages/TiposDocumentoPage";
 import { CreatePromptVersionPage } from "@/features/prompts/pages/CreatePromptVersionPage";
 import { PromptVersionDetailPage } from "@/features/prompts/pages/PromptVersionDetailPage";
-import { PromptVersionsPage } from "@/features/prompts/pages/PromptVersionsPage";
+import { UsersPage } from "@/features/users/pages/UsersPage";
 
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
@@ -26,10 +27,26 @@ export const router = createBrowserRouter([
             path: "",
             element: <ProtectedRoute allowedRoles={["entrenador", "admin"]} />,
             children: [
-              { path: "re-control", element: <ReControlPage /> },
-              { path: "configuracion", element: <PromptVersionsPage /> },
-              { path: "configuracion/nueva", element: <CreatePromptVersionPage /> },
-              { path: "configuracion/:versionId", element: <PromptVersionDetailPage /> },
+              { path: "configuracion", element: <TiposDocumentoPage /> },
+              {
+                path: "configuracion/tipos/:tipoId",
+                element: <TipoDocumentoDetailPage />,
+              },
+              {
+                path: "configuracion/tipos/:tipoId/versiones/nueva",
+                element: <CreatePromptVersionPage />,
+              },
+              {
+                path: "configuracion/tipos/:tipoId/versiones/:versionId",
+                element: <PromptVersionDetailPage />,
+              },
+              {
+                path: "",
+                element: <ProtectedRoute allowedRoles={["admin"]} />,
+                children: [
+                  { path: "usuarios", element: <UsersPage /> },
+                ],
+              },
             ],
           },
           { path: "*", element: <Navigate to="/casos" replace /> },

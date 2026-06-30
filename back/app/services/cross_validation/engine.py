@@ -1,8 +1,14 @@
 from dataclasses import dataclass
 from typing import Any
 
-from app.domain.cross_validation import ComparisonType, CrossField, CrossValidationResult
+from app.domain.cross_validation import (
+    ComparisonType,
+    CrossField,
+    CrossValidationResult,
+    NormalizationType,
+)
 from app.services.cross_validation.comparators import compare
+from app.services.cross_validation.normalizers import apply as apply_normalizations
 
 
 @dataclass(frozen=True)
@@ -44,6 +50,9 @@ class CrossValidationEngine:
                 comparison=ComparisonType(item["comparison"]),
                 critical=bool(item["critical"]),
                 required_expected=bool(item.get("required_expected", False)),
+                normalization=[
+                    NormalizationType(n) for n in item.get("normalization", [])
+                ],
             )
             for item in raw
         ]
@@ -70,17 +79,26 @@ class CrossValidationEngine:
             config = self._by_field.get(field_name)
             if config is None:
                 continue
-            extracted_value = extracted_values.get(field_name, "")
-            passed, reason = compare(config.comparison, extracted_value, expected_value)
+            raw_extracted = extracted_values.get(field_name, "")
+            normalized_extracted = apply_normalizations(
+                config.normalization, raw_extracted
+            )
+            normalized_expected = apply_normalizations(
+                config.normalization, expected_value
+            )
+            passed, reason = compare(
+                config.comparison, normalized_extracted, normalized_expected
+            )
             results.append(
                 CrossValidationResult(
                     field=field_name,
                     expected=expected_value,
-                    extracted=extracted_value,
+                    extracted=raw_extracted,
                     comparison=config.comparison,
                     critical=config.critical,
                     passed=passed,
                     reason=reason,
+                    normalization=list(config.normalization),
                 )
             )
         return results

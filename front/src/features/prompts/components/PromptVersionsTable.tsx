@@ -4,12 +4,20 @@ import { ActiveBadge } from "@/features/prompts/components/ActiveBadge";
 import type { PromptVersionListItem } from "@/features/prompts/types";
 
 interface PromptVersionsTableProps {
+  tipoId: string;
   versions: PromptVersionListItem[];
 }
 
-export function PromptVersionsTable({ versions }: PromptVersionsTableProps): ReactNode {
+export function PromptVersionsTable({
+  tipoId,
+  versions,
+}: PromptVersionsTableProps): ReactNode {
   if (versions.length === 0) {
-    return <p className="text-sm text-slate-500">Sin versiones disponibles.</p>;
+    return (
+      <p className="text-sm text-slate-500">
+        Aun no hay versiones de prompt para este tipo documental.
+      </p>
+    );
   }
   return (
     <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
@@ -27,7 +35,7 @@ export function PromptVersionsTable({ versions }: PromptVersionsTableProps): Rea
             <tr key={version.id} className="hover:bg-slate-50">
               <td className="px-4 py-2">
                 <Link
-                  to={`/configuracion/${version.id}`}
+                  to={`/configuracion/tipos/${tipoId}/versiones/${version.id}`}
                   className="font-medium text-brand-700 hover:underline"
                 >
                   v{version.numero}

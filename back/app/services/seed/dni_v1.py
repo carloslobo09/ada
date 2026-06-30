@@ -45,12 +45,69 @@ Si un campo no es legible o no está presente, devolvé value vacío,
 confidence cero y status rejected. Nunca inventes valores plausibles.
 """
 
+DNI_EXTRACTION_FIELDS_V1: list[dict] = [
+    {"name": "numero_dni", "label": "Numero de DNI"},
+    {"name": "nombre_completo", "label": "Nombre completo"},
+    {"name": "fecha_nacimiento", "label": "Fecha de nacimiento"},
+    {"name": "fecha_emision", "label": "Fecha de emision"},
+    {"name": "fecha_vencimiento", "label": "Fecha de vencimiento"},
+    {"name": "sexo", "label": "Sexo"},
+    {"name": "nacionalidad", "label": "Nacionalidad"},
+    {"name": "lugar_nacimiento", "label": "Lugar de nacimiento"},
+    {"name": "numero_tramite", "label": "Numero de tramite"},
+    {"name": "tipo_documento", "label": "Tipo de documento"},
+    {"name": "domicilio", "label": "Domicilio"},
+    {"name": "dorso_presente", "label": "Dorso presente"},
+]
+
 DNI_CROSS_VALIDATION_CONFIG_V1: list[dict] = [
-    {"field": "numero_dni", "comparison": "numeric_equals", "critical": True, "required_expected": True},
-    {"field": "nombre_completo", "comparison": "fuzzy_70", "critical": True, "required_expected": False},
-    {"field": "fecha_nacimiento", "comparison": "equals", "critical": True, "required_expected": False},
-    {"field": "sexo", "comparison": "equals_normalized", "critical": False, "required_expected": False},
-    {"field": "nacionalidad", "comparison": "equals_normalized", "critical": False, "required_expected": False},
-    {"field": "lugar_nacimiento", "comparison": "fuzzy_70", "critical": False, "required_expected": False},
-    {"field": "domicilio", "comparison": "fuzzy_60", "critical": False, "required_expected": False},
+    {
+        "field": "numero_dni",
+        "normalization": ["digits_only"],
+        "comparison": "equals",
+        "critical": True,
+        "required_expected": True,
+    },
+    {
+        "field": "nombre_completo",
+        "normalization": ["trim", "uppercase", "remove_accents", "collapse_spaces"],
+        "comparison": "fuzzy_70",
+        "critical": True,
+        "required_expected": False,
+    },
+    {
+        "field": "fecha_nacimiento",
+        "normalization": ["trim"],
+        "comparison": "equals",
+        "critical": True,
+        "required_expected": False,
+    },
+    {
+        "field": "sexo",
+        "normalization": ["trim", "uppercase"],
+        "comparison": "equals",
+        "critical": False,
+        "required_expected": False,
+    },
+    {
+        "field": "nacionalidad",
+        "normalization": ["trim", "uppercase", "remove_accents"],
+        "comparison": "equals",
+        "critical": False,
+        "required_expected": False,
+    },
+    {
+        "field": "lugar_nacimiento",
+        "normalization": ["trim", "uppercase", "remove_accents", "collapse_spaces"],
+        "comparison": "fuzzy_70",
+        "critical": False,
+        "required_expected": False,
+    },
+    {
+        "field": "domicilio",
+        "normalization": ["trim", "uppercase", "remove_accents", "collapse_spaces"],
+        "comparison": "fuzzy_60",
+        "critical": False,
+        "required_expected": False,
+    },
 ]

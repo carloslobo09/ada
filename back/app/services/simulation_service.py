@@ -1,23 +1,20 @@
 from __future__ import annotations
 
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
 
 from app.config import Settings
 from app.domain.cross_validation import CrossValidationResult
 from app.schemas.simulation import SimulationOut
-from app.services.caso_service import (
-    cross_result_to_dict,
-    extracted_values_for_cross,
-    normalized_to_dict,
-    rule_result_to_dict,
-)
+from app.services.caso_service import cross_result_to_dict, rule_result_to_dict
 from app.services.cross_validation.engine import CrossValidationEngine
 from app.services.decision_aggregator import aggregate
 from app.services.extraction.factory import build_extractor
-from app.services.normalization import normalize_dni
+from app.services.normalization import normalize_extraction
 from app.services.prompt_version_service import PromptVersionService
-from app.services.rules.engine import RuleEngine
+from app.services.rules.engine import Rule, RuleEngine
+from app.services.tipo_documento_service import TipoDocumentoService
 
 
 class SimulationService:
@@ -27,11 +24,13 @@ class SimulationService:
         self,
         settings: Settings,
         prompt_version_service: PromptVersionService,
-        rule_engine: RuleEngine,
+        tipo_documento_service: TipoDocumentoService,
+        rules_resolver: Callable[[str], list[Rule]],
     ) -> None:
         self._settings = settings
         self._prompt_version_service = prompt_version_service
-        self._rule_engine = rule_engine
+        self._tipo_documento_service = tipo_documento_service
+        self._rules_resolver = rules_resolver
 
     def simulate(
         self,
@@ -43,8 +42,12 @@ class SimulationService:
         expected: dict[str, str] | None,
     ) -> SimulationOut:
         version = self._prompt_version_service.get(version_id)
+        tipo = self._tipo_documento_service.get(version.tipo_documento_id)
+        rule_engine = RuleEngine(self._rules_resolver(tipo.nombre))
 
-        extractor = build_extractor(self._settings, version.prompt_text)
+        extractor = build_extractor(
+            self._settings, version.prompt_text, version.extraction_fields
+        )
         cross_engine = CrossValidationEngine.from_config_dicts(version.cross_validation_config)
 
         if expected is not None:
@@ -74,21 +77,20 @@ class SimulationService:
             except OSError:
                 pass
 
-        normalized = normalize_dni(extraction)
-        rule_results = self._rule_engine.evaluate(normalized)
+        normalized = normalize_extraction(extraction)
+        rule_results = rule_engine.evaluate(normalized)
 
         cross_results: list[CrossValidationResult] = []
         if expected:
-            extracted_values = extracted_values_for_cross(normalized)
-            cross_results = cross_engine.evaluate(extracted_values, expected)
+            cross_results = cross_engine.evaluate(normalized.values, expected)
 
         decision = aggregate(rule_results, cross_results)
 
         return SimulationOut(
             prompt_version_id=version.id,
             expected_received=expected,
-            raw_extraction=extraction.raw_response,
-            normalized_extraction=normalized_to_dict(normalized),
+            raw_extraction=normalized.raw,
+            normalized_extraction=dict(normalized.values),
             rule_results=[rule_result_to_dict(r) for r in rule_results],
             cross_validation_results=[cross_result_to_dict(r) for r in cross_results] or None,
             decision_status=decision.status.value,

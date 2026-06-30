@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict
 class DocumentoOut(BaseModel):
     id: str
     tipo_documento_id: str
+    nombre_original: str
     ubicacion_s3: str
     hash_integridad: str
     fecha_recepcion: datetime

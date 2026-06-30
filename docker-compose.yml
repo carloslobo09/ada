@@ -7,13 +7,12 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
+    env_file:
+      - ./back/.env
     environment:
-      EXTRACTOR_MODE: ${EXTRACTOR_MODE:-mock}
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.0-flash}
+      # Sobreescriben los paths definidos en back/.env: dentro del container apuntan al volumen.
       DB_URL: sqlite:////data/ada.db
       UPLOAD_DIR: /data/uploads
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
     volumes:
       - ada-data:/data
 

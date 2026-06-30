@@ -7,8 +7,12 @@ import type {
   SimulationResult,
 } from "@/features/prompts/types";
 
-export async function listPromptVersions(): Promise<PromptVersionListItem[]> {
-  const response = await apiClient.get<PromptVersionListItem[]>("/prompt-versions");
+export async function listPromptVersions(
+  tipoDocumentoId?: string,
+): Promise<PromptVersionListItem[]> {
+  const response = await apiClient.get<PromptVersionListItem[]>("/prompt-versions", {
+    params: tipoDocumentoId ? { tipo_documento_id: tipoDocumentoId } : undefined,
+  });
   return response.data;
 }
 

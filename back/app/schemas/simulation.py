@@ -14,6 +14,7 @@ class CrossValidationResultOut(BaseModel):
     field: str
     expected: str
     extracted: str
+    normalization: list[str] = []
     comparison: str
     critical: bool
     passed: bool

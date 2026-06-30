@@ -23,6 +23,7 @@ class Documento(Base):
         String(36), ForeignKey("tipos_documento.id"), index=True
     )
 
+    nombre_original: Mapped[str] = mapped_column(String(255))
     ubicacion_s3: Mapped[str] = mapped_column(String(512))
     hash_integridad: Mapped[str] = mapped_column(String(64), index=True)
     fecha_recepcion: Mapped[datetime] = mapped_column(

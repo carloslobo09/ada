@@ -24,9 +24,11 @@ from app.services.prompt_version_service import (
     PromptVersionNotFoundError,
     PromptVersionService,
 )
-from app.services.rules.dni_rules import default_dni_rules
 from app.services.rules.engine import RuleEngine
+from app.services.rules.registry import rules_for_tipo
 from app.services.simulation_service import SimulationService
+from app.services.tipo_documento_service import TipoDocumentoService
+from app.repositories.tipo_documento_repo import TipoDocumentoRepository
 from app.storage.filesystem import FilesystemStorage
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]
@@ -112,9 +114,14 @@ def build_caso_service_for_tipo(
             ),
         ) from exc
 
-    extractor = build_extractor(settings, version.prompt_text)
+    tipo_service = TipoDocumentoService(TipoDocumentoRepository(session))
+    tipo = tipo_service.get(tipo_documento_id)
+
+    extractor = build_extractor(
+        settings, version.prompt_text, version.extraction_fields
+    )
     cross_engine = CrossValidationEngine.from_config_dicts(version.cross_validation_config)
-    rule_engine = RuleEngine(default_dni_rules())
+    rule_engine = RuleEngine(rules_for_tipo(tipo.nombre))
 
     return CasoService(
         caso_repository=CasoRepository(session),
@@ -130,14 +137,16 @@ def build_caso_service_for_tipo(
 
 
 def get_simulation_service(
+    session: SessionDep,
     settings: SettingsDep,
     prompt_version_service: PromptVersionServiceDep,
 ) -> SimulationService:
-    rule_engine = RuleEngine(default_dni_rules())
+    tipo_service = TipoDocumentoService(TipoDocumentoRepository(session))
     return SimulationService(
         settings=settings,
         prompt_version_service=prompt_version_service,
-        rule_engine=rule_engine,
+        tipo_documento_service=tipo_service,
+        rules_resolver=rules_for_tipo,
     )
 
 

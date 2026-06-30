@@ -4,7 +4,15 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routers import auth, cases, health, prompt_versions, tipos_documento
+from app.api.routers import (
+    auth,
+    cases,
+    health,
+    metrics,
+    prompt_versions,
+    tipos_documento,
+    users,
+)
 from app.db import init_db
 
 
@@ -34,3 +42,5 @@ app.include_router(auth.router)
 app.include_router(cases.router)
 app.include_router(prompt_versions.router)
 app.include_router(tipos_documento.router)
+app.include_router(users.router)
+app.include_router(metrics.router)

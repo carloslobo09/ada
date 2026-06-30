@@ -21,6 +21,7 @@ class PromptVersion(Base):
     )
 
     prompt_text: Mapped[str] = mapped_column(String)
+    extraction_fields: Mapped[list[dict[str, Any]]] = mapped_column(JSON)
     cross_validation_config: Mapped[list[dict[str, Any]]] = mapped_column(JSON)
 
     estado: Mapped[str] = mapped_column(String(16), default="borrador")

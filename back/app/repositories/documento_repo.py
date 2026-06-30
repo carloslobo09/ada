@@ -13,6 +13,7 @@ class DocumentoRepository:
         self,
         *,
         tipo_documento_id: str,
+        nombre_original: str,
         ubicacion_s3: str,
         hash_integridad: str,
         content_type: str,
@@ -20,6 +21,7 @@ class DocumentoRepository:
     ) -> Documento:
         documento = Documento(
             tipo_documento_id=tipo_documento_id,
+            nombre_original=nombre_original,
             ubicacion_s3=ubicacion_s3,
             hash_integridad=hash_integridad,
             content_type=content_type,

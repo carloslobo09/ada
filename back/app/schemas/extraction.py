@@ -1,23 +1,8 @@
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
 FieldStatus = Literal["approved", "rejected"]
-
-DNI_FIELDS: tuple[str, ...] = (
-    "numero_dni",
-    "nombre_completo",
-    "fecha_nacimiento",
-    "fecha_emision",
-    "fecha_vencimiento",
-    "sexo",
-    "nacionalidad",
-    "lugar_nacimiento",
-    "numero_tramite",
-    "tipo_documento",
-    "domicilio",
-    "dorso_presente",
-)
 
 
 class FieldExtractionSchema(BaseModel):
@@ -28,39 +13,30 @@ class FieldExtractionSchema(BaseModel):
     status: FieldStatus
 
 
-class DniExtractionSchema(BaseModel):
-    """Contrato de salida del modelo para el DNI argentino."""
+def build_response_schema(extraction_fields: list[dict[str, Any]]) -> dict[str, Any]:
+    """Construye dinamicamente el JSON Schema esperado de la respuesta del modelo.
 
-    numero_dni: FieldExtractionSchema
-    nombre_completo: FieldExtractionSchema
-    fecha_nacimiento: FieldExtractionSchema
-    fecha_emision: FieldExtractionSchema
-    fecha_vencimiento: FieldExtractionSchema
-    sexo: FieldExtractionSchema
-    nacionalidad: FieldExtractionSchema
-    lugar_nacimiento: FieldExtractionSchema
-    numero_tramite: FieldExtractionSchema
-    tipo_documento: FieldExtractionSchema
-    domicilio: FieldExtractionSchema
-    dorso_presente: FieldExtractionSchema
-
-
-DNI_RESPONSE_SCHEMA: dict = {
-    "type": "object",
-    "properties": {
-        campo: {
-            "type": "object",
-            "properties": {
-                "value": {"type": "string"},
-                "confidence": {"type": "number"},
-                "status": {
-                    "type": "string",
-                    "enum": ["approved", "rejected"],
+    A partir de la lista de campos configurada en la version del prompt, arma el
+    schema que se pasa como `response_schema` al adaptador LLM. Esto desacopla al
+    extractor de un tipo documental especifico.
+    """
+    field_names = [item["name"] for item in extraction_fields]
+    return {
+        "type": "object",
+        "properties": {
+            name: {
+                "type": "object",
+                "properties": {
+                    "value": {"type": "string"},
+                    "confidence": {"type": "number"},
+                    "status": {
+                        "type": "string",
+                        "enum": ["approved", "rejected"],
+                    },
                 },
-            },
-            "required": ["value", "confidence", "status"],
-        }
-        for campo in DNI_FIELDS
-    },
-    "required": list(DNI_FIELDS),
-}
+                "required": ["value", "confidence", "status"],
+            }
+            for name in field_names
+        },
+        "required": field_names,
+    }

@@ -16,6 +16,12 @@ from app.schemas.prompt_version import (
     PromptVersionOut,
 )
 from app.schemas.simulation import SimulationOut
+from app.services.extraction.errors import (
+    ExtractorAuthError,
+    ExtractorInvalidResponseError,
+    ExtractorRateLimitedError,
+    ExtractorUnavailableError,
+)
 from app.services.prompt_version_service import (
     CannotDeleteActiveVersionError,
     PromptVersionNotFoundError,
@@ -68,6 +74,7 @@ def create_version(
     version = service.create(
         tipo_documento_id=payload.tipo_documento_id,
         prompt_text=payload.prompt_text,
+        extraction_fields=[ef.model_dump() for ef in payload.extraction_fields],
         cross_validation_config=[cf.model_dump() for cf in payload.cross_validation_config],
         ref_usuario_creador=user.id,
     )
@@ -153,6 +160,22 @@ async def simulate_version(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Version no encontrada: {version_id}",
+        ) from exc
+    except ExtractorAuthError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)
+        ) from exc
+    except ExtractorRateLimitedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(exc)
+        ) from exc
+    except ExtractorUnavailableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        ) from exc
+    except ExtractorInvalidResponseError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)
         ) from exc
 
 

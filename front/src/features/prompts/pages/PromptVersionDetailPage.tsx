@@ -3,8 +3,10 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { Alert } from "@/components/Alert";
 import { Button } from "@/components/Button";
 import { Spinner } from "@/components/Spinner";
+import { useConfirm } from "@/contexts/ConfirmContext";
 import { ActiveBadge } from "@/features/prompts/components/ActiveBadge";
 import { CrossFieldsEditor } from "@/features/prompts/components/CrossFieldsEditor";
+import { ExtractionFieldsEditor } from "@/features/prompts/components/ExtractionFieldsEditor";
 import { SimulationPanel } from "@/features/prompts/components/SimulationPanel";
 import { useDeletePromptVersion } from "@/features/prompts/hooks/useDeletePromptVersion";
 import { useGetPromptVersion } from "@/features/prompts/hooks/useGetPromptVersion";
@@ -12,8 +14,10 @@ import { usePublishPromptVersion } from "@/features/prompts/hooks/usePublishProm
 import { extractApiMessage } from "@/lib/errors";
 
 export function PromptVersionDetailPage(): ReactNode {
-  const { versionId } = useParams<{ versionId: string }>();
+  const { tipoId, versionId } = useParams<{ tipoId: string; versionId: string }>();
   const navigate = useNavigate();
+  const confirm = useConfirm();
+
   const { data, isLoading, isError, error } = useGetPromptVersion(versionId);
   const publish = usePublishPromptVersion();
   const remove = useDeletePromptVersion();
@@ -34,18 +38,30 @@ export function PromptVersionDetailPage(): ReactNode {
     );
   }
 
-  function handlePublish(): void {
+  async function handlePublish(): Promise<void> {
     if (!data) return;
+    const ok = await confirm({
+      title: "Publicar version",
+      message:
+        "La version publicada pasa a usarse para procesar nuevos casos. La version publicada anterior queda archivada.",
+      confirmLabel: "Publicar",
+      variant: "primary",
+    });
+    if (!ok) return;
     publish.mutate(data.id);
   }
 
-  function handleDelete(): void {
+  async function handleDelete(): Promise<void> {
     if (!data) return;
-    if (!window.confirm(`Eliminar la version v${data.numero}? Esta accion no se puede deshacer.`)) {
-      return;
-    }
+    const ok = await confirm({
+      title: "Eliminar version",
+      message: `Vas a eliminar la version v${data.numero}. Esta accion no se puede deshacer.`,
+      confirmLabel: "Eliminar",
+      variant: "danger",
+    });
+    if (!ok) return;
     remove.mutate(data.id, {
-      onSuccess: () => navigate("/configuracion"),
+      onSuccess: () => navigate(`/configuracion/tipos/${tipoId}`),
     });
   }
 
@@ -54,14 +70,19 @@ export function PromptVersionDetailPage(): ReactNode {
 
   return (
     <div className="space-y-6">
-      <Link to="/configuracion" className="text-sm text-brand-700 hover:underline">
-        ← Volver a configuracion
+      <Link
+        to={`/configuracion/tipos/${tipoId}`}
+        className="text-sm text-brand-700 hover:underline"
+      >
+        ← Volver al tipo documental
       </Link>
 
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-semibold text-slate-900">Version v{data.numero}</h1>
+            <h1 className="text-2xl font-semibold text-slate-900">
+              Version v{data.numero}
+            </h1>
             <ActiveBadge estado={data.estado} />
           </div>
           <p className="text-sm text-slate-600">
@@ -72,7 +93,7 @@ export function PromptVersionDetailPage(): ReactNode {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
-            to={`/configuracion/nueva?base=${data.id}`}
+            to={`/configuracion/tipos/${tipoId}/versiones/nueva?base=${data.id}`}
             className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
             Duplicar a nueva version
@@ -102,6 +123,13 @@ export function PromptVersionDetailPage(): ReactNode {
       )}
 
       <section className="space-y-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">
+          Campos a extraer
+        </h2>
+        <ExtractionFieldsEditor value={data.extraction_fields} onChange={() => {}} readOnly />
+      </section>
+
+      <section className="space-y-3">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">Prompt</h2>
         <pre className="overflow-x-auto rounded-md border border-slate-200 bg-white p-4 font-mono text-xs text-slate-800 whitespace-pre-wrap">
           {data.prompt_text}
@@ -112,10 +140,19 @@ export function PromptVersionDetailPage(): ReactNode {
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">
           Validacion cruzada
         </h2>
-        <CrossFieldsEditor value={data.cross_validation_config} onChange={() => {}} readOnly />
+        <CrossFieldsEditor
+          extractionFields={data.extraction_fields}
+          value={data.cross_validation_config}
+          onChange={() => {}}
+          readOnly
+        />
       </section>
 
-      <SimulationPanel versionId={data.id} crossFields={data.cross_validation_config} />
+      <SimulationPanel
+        versionId={data.id}
+        extractionFields={data.extraction_fields}
+        crossFields={data.cross_validation_config}
+      />
     </div>
   );
 }

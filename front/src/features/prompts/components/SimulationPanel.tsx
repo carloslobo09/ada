@@ -7,29 +7,28 @@ import { FileDropzone } from "@/features/cases/components/FileDropzone";
 import { NormalizedFieldsTable } from "@/features/cases/components/NormalizedFieldsTable";
 import { RuleResultsList } from "@/features/cases/components/RuleResultsList";
 import { useSimulatePromptVersion } from "@/features/prompts/hooks/useSimulatePromptVersion";
-import type { CrossFieldConfig, SimulationResult } from "@/features/prompts/types";
+import type {
+  CrossFieldConfig,
+  ExtractionField,
+  SimulationResult,
+} from "@/features/prompts/types";
 import { extractApiMessage } from "@/lib/errors";
 
 interface SimulationPanelProps {
   versionId: string;
+  extractionFields: ExtractionField[];
   crossFields: CrossFieldConfig[];
 }
 
-const FIELD_LABELS: Record<string, { label: string; placeholder: string }> = {
-  numero_dni: { label: "Numero de DNI", placeholder: "40123456" },
-  nombre_completo: { label: "Nombre completo", placeholder: "LOBO CARLOS IGNACIO" },
-  fecha_nacimiento: { label: "Fecha de nacimiento (ISO)", placeholder: "1997-08-15" },
-  fecha_emision: { label: "Fecha de emision (ISO)", placeholder: "2018-05-20" },
-  fecha_vencimiento: { label: "Fecha de vencimiento (ISO)", placeholder: "2033-05-20" },
-  sexo: { label: "Sexo", placeholder: "M" },
-  nacionalidad: { label: "Nacionalidad", placeholder: "ARGENTINA" },
-  lugar_nacimiento: { label: "Lugar de nacimiento", placeholder: "BUENOS AIRES" },
-  numero_tramite: { label: "Numero de tramite", placeholder: "00123456789" },
-  tipo_documento: { label: "Tipo de documento", placeholder: "Registro Nacional de las Personas" },
-  domicilio: { label: "Domicilio", placeholder: "AV RIVADAVIA 1234 CABA" },
-};
+export function SimulationPanel({
+  versionId,
+  extractionFields,
+  crossFields,
+}: SimulationPanelProps): ReactNode {
+  const labelsByName = Object.fromEntries(
+    extractionFields.map((f) => [f.name, f.label]),
+  );
 
-export function SimulationPanel({ versionId, crossFields }: SimulationPanelProps): ReactNode {
   const [file, setFile] = useState<File | null>(null);
   const [expected, setExpected] = useState<Record<string, string>>(() =>
     Object.fromEntries(crossFields.map((cf) => [cf.field, ""])),
@@ -86,8 +85,7 @@ export function SimulationPanel({ versionId, crossFields }: SimulationPanelProps
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
               {crossFields.map((cf) => {
-                const label = FIELD_LABELS[cf.field]?.label ?? cf.field;
-                const placeholder = FIELD_LABELS[cf.field]?.placeholder ?? "";
+                const label = labelsByName[cf.field] ?? humanize(cf.field);
                 return (
                   <label key={cf.field} className="block space-y-1">
                     <span className="text-xs font-medium text-slate-700">
@@ -103,7 +101,6 @@ export function SimulationPanel({ versionId, crossFields }: SimulationPanelProps
                       type="text"
                       value={expected[cf.field] ?? ""}
                       onChange={(e) => update(cf.field, e.target.value)}
-                      placeholder={placeholder}
                       className="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                     />
                   </label>
@@ -129,12 +126,17 @@ export function SimulationPanel({ versionId, crossFields }: SimulationPanelProps
         </div>
       </form>
 
-      {mutation.data && <ResultPanel result={mutation.data} />}
+      {mutation.data && <ResultPanel result={mutation.data} labels={labelsByName} />}
     </section>
   );
 }
 
-function ResultPanel({ result }: { result: SimulationResult }): ReactNode {
+interface ResultPanelProps {
+  result: SimulationResult;
+  labels: Record<string, string>;
+}
+
+function ResultPanel({ result, labels }: ResultPanelProps): ReactNode {
   return (
     <div className="space-y-4 border-t border-slate-200 pt-4">
       <div className="flex items-start justify-between gap-3">
@@ -154,7 +156,7 @@ function ResultPanel({ result }: { result: SimulationResult }): ReactNode {
           <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600">
             Datos extraidos
           </h3>
-          <NormalizedFieldsTable data={result.normalized_extraction} />
+          <NormalizedFieldsTable data={result.normalized_extraction} labels={labels} />
         </section>
       )}
 
@@ -179,6 +181,13 @@ function ResultPanel({ result }: { result: SimulationResult }): ReactNode {
   );
 }
 
+function humanize(key: string): string {
+  return key
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+}
+
 function trimExpected(values: Record<string, string>): Record<string, string> | null {
   const cleaned: Record<string, string> = {};
   for (const [key, value] of Object.entries(values)) {
@@ -188,4 +197,3 @@ function trimExpected(values: Record<string, string>): Record<string, string> | 
   }
   return Object.keys(cleaned).length === 0 ? null : cleaned;
 }
-

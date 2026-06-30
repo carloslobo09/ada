@@ -9,17 +9,20 @@ interface NavItem {
   allowedRoles?: Rol[];
 }
 
-const NAV: NavItem[] = [
-  { to: "/casos", label: "Casos" },
-  { to: "/re-control", label: "Re Control", allowedRoles: ["entrenador", "admin"] },
-  { to: "/configuracion", label: "Configuracion", allowedRoles: ["entrenador", "admin"] },
-];
-
 const ROL_LABEL: Record<Rol, string> = {
   cliente: "Cliente",
   entrenador: "Entrenador",
   admin: "Administrador",
 };
+
+function buildNav(rol: Rol | undefined): NavItem[] {
+  const casosLabel = rol === "cliente" ? "Mis casos" : "Re Control";
+  return [
+    { to: "/casos", label: casosLabel },
+    { to: "/configuracion", label: "Configuracion", allowedRoles: ["entrenador", "admin"] },
+    { to: "/usuarios", label: "Usuarios", allowedRoles: ["admin"] },
+  ];
+}
 
 export function Layout(): ReactNode {
   const { user, logout } = useAuth();
@@ -30,7 +33,7 @@ export function Layout(): ReactNode {
     navigate("/login");
   }
 
-  const visibleNav = NAV.filter(
+  const nav = buildNav(user?.rol).filter(
     (item) => !item.allowedRoles || (user && item.allowedRoles.includes(user.rol)),
   );
 
@@ -48,7 +51,7 @@ export function Layout(): ReactNode {
             </div>
           </div>
           <nav className="flex gap-1">
-            {visibleNav.map((item) => (
+            {nav.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}

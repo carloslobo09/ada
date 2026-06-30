@@ -38,12 +38,14 @@ class PromptVersionService:
         *,
         tipo_documento_id: str,
         prompt_text: str,
+        extraction_fields: list[dict[str, Any]],
         cross_validation_config: list[dict[str, Any]],
         ref_usuario_creador: str | None = None,
     ) -> PromptVersion:
         return self._repository.create(
             tipo_documento_id=tipo_documento_id,
             prompt_text=prompt_text,
+            extraction_fields=extraction_fields,
             cross_validation_config=cross_validation_config,
             publish=False,
             ref_usuario_creador=ref_usuario_creador,
@@ -69,6 +71,7 @@ def seed_default_prompt_version_if_missing(
     *,
     tipo_documento_id: str,
     prompt_text: str,
+    extraction_fields: list[dict[str, Any]],
     cross_validation_config: list[dict[str, Any]],
 ) -> None:
     if repository.get_active(tipo_documento_id) is not None:
@@ -76,6 +79,7 @@ def seed_default_prompt_version_if_missing(
     repository.create(
         tipo_documento_id=tipo_documento_id,
         prompt_text=prompt_text,
+        extraction_fields=extraction_fields,
         cross_validation_config=cross_validation_config,
         publish=True,
     )

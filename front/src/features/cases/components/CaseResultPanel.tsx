@@ -42,6 +42,7 @@ export function CaseResultPanel({ caso }: CaseResultPanelProps): ReactNode {
       {caso.documento && (
         <Section title="Documento recibido">
           <dl className="grid gap-y-2 gap-x-6 rounded-md border border-slate-200 bg-white p-4 sm:grid-cols-2">
+            <Detail label="Archivo original" value={caso.documento.nombre_original} />
             <Detail label="Tipo de documento" value={caso.documento.tipo_documento_id} />
             <Detail label="Hash integridad" value={caso.documento.hash_integridad} />
             <Detail label="Ubicacion" value={caso.documento.ubicacion_s3} />

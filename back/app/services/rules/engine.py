@@ -1,9 +1,8 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Generic, TypeVar
 
-T = TypeVar("T")
+from app.domain.extraction import NormalizedExtraction
 
 
 class Severity(str, Enum):
@@ -19,19 +18,19 @@ class RuleResult:
     reason: str
 
 
-class Rule(ABC, Generic[T]):
+class Rule(ABC):
     name: str
     severity: Severity
 
     @abstractmethod
-    def check(self, target: T) -> RuleResult: ...
+    def check(self, target: NormalizedExtraction) -> RuleResult: ...
 
 
-class RuleEngine(Generic[T]):
-    """Aplica una secuencia de reglas sobre un input normalizado."""
+class RuleEngine:
+    """Aplica una secuencia de reglas sobre una extraccion normalizada."""
 
-    def __init__(self, rules: list[Rule[T]]) -> None:
+    def __init__(self, rules: list[Rule]) -> None:
         self._rules = rules
 
-    def evaluate(self, target: T) -> list[RuleResult]:
+    def evaluate(self, target: NormalizedExtraction) -> list[RuleResult]:
         return [rule.check(target) for rule in self._rules]

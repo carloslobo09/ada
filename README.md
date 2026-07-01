@@ -53,4 +53,4 @@ Contrasena por defecto: la definida en `back/.env` como `SEED_PASSWORD`.
 
 ## Video demostrativo
 
-> _Pendiente:_ link al video
+> https://youtu.be/qeI18M619cs

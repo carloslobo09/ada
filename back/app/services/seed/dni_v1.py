@@ -60,6 +60,10 @@ DNI_EXTRACTION_FIELDS_V1: list[dict] = [
     {"name": "dorso_presente", "label": "Dorso presente"},
 ]
 
+# Los campos criticos del cruce son ademas obligatorios en el payload del
+# integrador: un critico opcional podria esquivarse por omision (si el campo
+# no llega, su comparacion no se ejecuta y el caso puede aprobarse sin ese
+# control). Los campos no criticos quedan opcionales.
 DNI_CROSS_VALIDATION_CONFIG_V1: list[dict] = [
     {
         "field": "numero_dni",
@@ -73,14 +77,14 @@ DNI_CROSS_VALIDATION_CONFIG_V1: list[dict] = [
         "normalization": ["trim", "uppercase", "remove_accents", "collapse_spaces"],
         "comparison": "fuzzy_70",
         "critical": True,
-        "required_expected": False,
+        "required_expected": True,
     },
     {
         "field": "fecha_nacimiento",
         "normalization": ["trim"],
         "comparison": "equals",
         "critical": True,
-        "required_expected": False,
+        "required_expected": True,
     },
     {
         "field": "sexo",

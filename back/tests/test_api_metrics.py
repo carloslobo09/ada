@@ -18,6 +18,15 @@ def _post_case(client: TestClient, tipo_id: str, *, expected: dict | None = None
     )
 
 
+# Payload completo (los tres criticos son obligatorios) con el numero incorrecto,
+# para forzar un rechazo por validacion cruzada y no un rechazo pre-LLM.
+EXPECTED_NUMERO_INCORRECTO = {
+    "numero_dni": "99999999",
+    "nombre_completo": "LOBO CARLOS IGNACIO",
+    "fecha_nacimiento": "1997-08-15",
+}
+
+
 def test_dashboard_cliente_devuelve_403(client: TestClient, cliente_token: str) -> None:
     response = client.get("/metrics/dashboard", headers=auth_headers(cliente_token))
     assert response.status_code == 403
@@ -36,7 +45,7 @@ def test_dashboard_cuenta_casos_y_distribucion(
     client: TestClient, seeded_tipo_id: str
 ) -> None:
     _post_case(client, seeded_tipo_id)
-    _post_case(client, seeded_tipo_id, expected={"numero_dni": "99999999"})
+    _post_case(client, seeded_tipo_id, expected=EXPECTED_NUMERO_INCORRECTO)
 
     body = client.get("/metrics/dashboard").json()
     kpis = body["kpis"]
@@ -54,7 +63,7 @@ def test_dashboard_cuenta_casos_y_distribucion(
 def test_top_motivos_conserva_el_campo_del_cross(
     client: TestClient, seeded_tipo_id: str
 ) -> None:
-    _post_case(client, seeded_tipo_id, expected={"numero_dni": "99999999"})
+    _post_case(client, seeded_tipo_id, expected=EXPECTED_NUMERO_INCORRECTO)
 
     body = client.get("/metrics/dashboard").json()
     motivos = [m["motivo"] for m in body["top_motivos_rechazo"]]
@@ -66,7 +75,7 @@ def test_acuerdo_ia_humano_y_falsos_positivos(
 ) -> None:
     aprobado = _post_case(client, seeded_tipo_id).json()
     rechazado = _post_case(
-        client, seeded_tipo_id, expected={"numero_dni": "99999999"}
+        client, seeded_tipo_id, expected=EXPECTED_NUMERO_INCORRECTO
     ).json()
 
     client.patch(

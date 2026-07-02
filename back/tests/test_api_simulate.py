@@ -35,7 +35,11 @@ def test_simulate_no_persiste_el_caso(client: TestClient) -> None:
 
 def test_simulate_con_expected_completo(client: TestClient) -> None:
     version_id = _active_version_id(client)
-    expected = {"numero_dni": "40123456", "nombre_completo": "Lobo Carlos Ignacio"}
+    expected = {
+        "numero_dni": "40123456",
+        "nombre_completo": "Lobo Carlos Ignacio",
+        "fecha_nacimiento": "1997-08-15",
+    }
     response = client.post(
         f"/prompt-versions/{version_id}/simulate",
         files={"file": ("dni.png", io.BytesIO(b"x"), "image/png")},
@@ -44,7 +48,7 @@ def test_simulate_con_expected_completo(client: TestClient) -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["decision_status"] == "approved"
-    assert len(body["cross_validation_results"]) == 2
+    assert len(body["cross_validation_results"]) == 3
 
 
 def test_simulate_falta_required_rechaza(client: TestClient) -> None:

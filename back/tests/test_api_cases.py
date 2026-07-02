@@ -61,6 +61,7 @@ def test_create_case_con_expected_aprueba(client: TestClient, seeded_tipo_id: st
     expected = {
         "numero_dni": "40123456",
         "nombre_completo": "Lobo Carlos Ignacio",
+        "fecha_nacimiento": "1997-08-15",
     }
     response = _post_case(client, seeded_tipo_id, expected=expected)
     assert response.status_code == 201
@@ -68,18 +69,36 @@ def test_create_case_con_expected_aprueba(client: TestClient, seeded_tipo_id: st
     assert body["decision"]["veredicto"] == "approved"
     assert body["decision"]["expected_received"] == expected
     cruzados = body["decision"]["cross_validation_results"]
-    assert len(cruzados) == 2
+    assert len(cruzados) == 3
     assert all(r["passed"] for r in cruzados)
 
 
 def test_create_case_expected_no_coincide_rechaza(
     client: TestClient, seeded_tipo_id: str
 ) -> None:
-    response = _post_case(client, seeded_tipo_id, expected={"numero_dni": "99999999"})
+    expected = {
+        "numero_dni": "99999999",
+        "nombre_completo": "Lobo Carlos Ignacio",
+        "fecha_nacimiento": "1997-08-15",
+    }
+    response = _post_case(client, seeded_tipo_id, expected=expected)
     assert response.status_code == 201
     body = response.json()
     assert body["decision"]["veredicto"] == "rejected"
     assert "numero_dni" in body["decision"]["motivos"]
+
+
+def test_create_case_criticos_incompletos_rechaza_pre_llm(
+    client: TestClient, seeded_tipo_id: str
+) -> None:
+    # Los tres campos criticos del cruce son obligatorios: enviar solo uno
+    # rechaza el caso antes de invocar al modelo.
+    response = _post_case(client, seeded_tipo_id, expected={"numero_dni": "40123456"})
+    assert response.status_code == 201
+    body = response.json()
+    assert body["estado"] == "rechazado_pre_llm"
+    assert "nombre_completo" in body["decision"]["motivos"]
+    assert "fecha_nacimiento" in body["decision"]["motivos"]
 
 
 def test_create_case_falta_required_rechaza_pre_llm(

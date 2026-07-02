@@ -1,4 +1,3 @@
-import json
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
@@ -9,6 +8,7 @@ from app.api.dependencies import (
     SimulationServiceDep,
     require_roles,
 )
+from app.api.uploads import parse_expected, read_validated_file
 from app.models.usuario import Usuario
 from app.schemas.prompt_version import (
     PromptVersionCreate,
@@ -29,11 +29,6 @@ from app.services.prompt_version_service import (
 
 router = APIRouter(prefix="/prompt-versions", tags=["prompt-versions"])
 
-ALLOWED_MIME: frozenset[str] = frozenset(
-    {"image/jpeg", "image/png", "image/webp", "application/pdf"}
-)
-MAX_BYTES = 10 * 1024 * 1024
-
 EntrenadorOAdmin = Annotated[Usuario, Depends(require_roles("entrenador", "admin"))]
 
 
@@ -52,7 +47,7 @@ def list_versions(
 @router.get("/{version_id}", response_model=PromptVersionOut)
 def get_version(
     version_id: str,
-    user: CurrentUserDep,
+    user: EntrenadorOAdmin,
     service: PromptVersionServiceDep,
 ) -> PromptVersionOut:
     try:
@@ -113,7 +108,7 @@ def delete_version(
     except CannotDeleteActiveVersionError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="No se puede eliminar la version activa. Activa otra version primero.",
+            detail="No se puede eliminar la version publicada. Publica otra version primero.",
         ) from exc
 
 
@@ -133,20 +128,8 @@ async def simulate_version(
         ),
     ] = None,
 ) -> SimulationOut:
-    if file.content_type not in ALLOWED_MIME:
-        raise HTTPException(
-            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail=f"Tipo de archivo no soportado: {file.content_type}",
-        )
-
-    content = await file.read()
-    if len(content) > MAX_BYTES:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"El archivo supera el limite de {MAX_BYTES // (1024 * 1024)} MB.",
-        )
-
-    parsed_expected = _parse_expected(expected)
+    content = await read_validated_file(file)
+    parsed_expected = parse_expected(expected)
 
     try:
         return service.simulate(
@@ -177,30 +160,3 @@ async def simulate_version(
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)
         ) from exc
-
-
-def _parse_expected(raw: str | None) -> dict[str, str] | None:
-    if raw is None or raw.strip() == "":
-        return None
-    try:
-        parsed = json.loads(raw)
-    except json.JSONDecodeError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"El campo 'expected' no es un JSON valido: {exc.msg}.",
-        ) from exc
-    if not isinstance(parsed, dict):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El campo 'expected' debe ser un objeto JSON con pares campo: valor.",
-        )
-    invalid_values = [k for k, v in parsed.items() if not isinstance(v, str)]
-    if invalid_values:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                "Todos los valores en 'expected' deben ser strings. "
-                f"Campos invalidos: {', '.join(invalid_values)}."
-            ),
-        )
-    return parsed

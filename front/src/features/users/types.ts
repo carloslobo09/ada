@@ -1,15 +1,6 @@
-import type { Rol } from "@/features/auth/types";
+import type { EstadoUsuario, Rol, Usuario } from "@/features/auth/types";
 
-export type EstadoUsuario = "activo" | "inactivo";
-
-export interface Usuario {
-  id: string;
-  email: string;
-  nombre: string;
-  rol: Rol;
-  estado: EstadoUsuario;
-  fecha_alta: string;
-}
+export type { EstadoUsuario, Usuario };
 
 export interface CreateUserInput {
   email: string;

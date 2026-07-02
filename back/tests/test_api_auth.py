@@ -279,3 +279,13 @@ def test_cliente_puede_listar_prompt_versions(
 ) -> None:
     response = client.get("/prompt-versions", headers=auth_headers(cliente_token))
     assert response.status_code == 200
+
+
+def test_cliente_no_puede_ver_detalle_de_prompt_version(
+    client: TestClient, cliente_token: str
+) -> None:
+    versions = client.get("/prompt-versions").json()
+    response = client.get(
+        f"/prompt-versions/{versions[0]['id']}", headers=auth_headers(cliente_token)
+    )
+    assert response.status_code == 403

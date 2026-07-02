@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.api.dependencies import CurrentUserDep, require_roles
 from app.db import get_session
 from app.models.usuario import Usuario
+from app.repositories.prompt_version_repo import PromptVersionRepository
 from app.repositories.tipo_documento_repo import TipoDocumentoRepository
 from app.schemas.tipo_documento import (
     TipoDocumentoCreate,
@@ -14,6 +15,7 @@ from app.schemas.tipo_documento import (
 )
 from app.services.tipo_documento_service import (
     DuplicateTipoDocumentoError,
+    TipoDocumentoEnUsoError,
     TipoDocumentoNotFoundError,
     TipoDocumentoService,
 )
@@ -24,7 +26,10 @@ router = APIRouter(prefix="/document-types", tags=["document-types"])
 def get_tipo_documento_service(
     session: Annotated[Session, Depends(get_session)],
 ) -> TipoDocumentoService:
-    return TipoDocumentoService(TipoDocumentoRepository(session))
+    return TipoDocumentoService(
+        TipoDocumentoRepository(session),
+        prompt_versions=PromptVersionRepository(session),
+    )
 
 
 ServiceDep = Annotated[TipoDocumentoService, Depends(get_tipo_documento_service)]
@@ -108,4 +113,12 @@ def delete_tipo(tipo_id: str, user: AdminDep, service: ServiceDep) -> None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Tipo de documento no encontrado: {tipo_id}",
+        ) from exc
+    except TipoDocumentoEnUsoError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "El tipo tiene versiones de prompt asociadas. "
+                "Elimina las versiones primero o desactiva el tipo."
+            ),
         ) from exc

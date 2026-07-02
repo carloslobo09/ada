@@ -29,6 +29,16 @@ export function TiposDocumentoPage(): ReactNode {
   const [editing, setEditing] = useState<TipoDocumento | null>(null);
   const [showCreate, setShowCreate] = useState<boolean>(false);
 
+  function openCreate(): void {
+    create.reset();
+    setShowCreate(true);
+  }
+
+  function openEdit(tipo: TipoDocumento): void {
+    update.reset();
+    setEditing(tipo);
+  }
+
   function handleCreate(payload: CreateTipoDocumentoInput): void {
     create.mutate(payload, {
       onSuccess: () => {
@@ -85,7 +95,7 @@ export function TiposDocumentoPage(): ReactNode {
           </p>
         </div>
         {isAdmin && !showCreate && (
-          <Button onClick={() => setShowCreate(true)}>Nuevo tipo</Button>
+          <Button onClick={openCreate}>Nuevo tipo</Button>
         )}
       </header>
 
@@ -116,6 +126,12 @@ export function TiposDocumentoPage(): ReactNode {
         </Alert>
       )}
 
+      {update.error && !editing && (
+        <Alert variant="danger" title="No se pudo actualizar el estado">
+          {extractApiMessage(update.error)}
+        </Alert>
+      )}
+
       {list.isLoading && (
         <div className="flex items-center justify-center py-20 text-slate-500">
           <Spinner size="lg" />
@@ -124,7 +140,7 @@ export function TiposDocumentoPage(): ReactNode {
 
       {list.isError && (
         <Alert variant="danger" title="No se pudieron cargar los tipos documentales">
-          {list.error instanceof Error ? list.error.message : "Error desconocido."}
+          {extractApiMessage(list.error)}
         </Alert>
       )}
 
@@ -132,7 +148,7 @@ export function TiposDocumentoPage(): ReactNode {
         <TiposDocumentoTable
           tipos={list.data}
           isAdmin={isAdmin}
-          onEdit={setEditing}
+          onEdit={openEdit}
           onToggleEstado={handleToggleEstado}
           onDelete={handleDelete}
           busyId={busyId}

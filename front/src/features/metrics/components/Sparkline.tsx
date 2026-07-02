@@ -19,7 +19,7 @@ export function Sparkline({ serie }: SparklineProps): ReactNode {
         return (
           <div
             key={d.fecha}
-            className="group relative flex-1 min-w-[3px]"
+            className="group relative h-full flex-1 min-w-[3px]"
             title={`${d.fecha}: ${d.cantidad} casos`}
           >
             <div

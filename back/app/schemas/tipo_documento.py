@@ -20,6 +20,7 @@ class TipoDocumentoUpdate(BaseModel):
 class TipoDocumentoOut(BaseModel):
     id: str
     nombre: str
+    slug: str
     descripcion: str | None
     estado: EstadoTipoDocumento
     created_at: datetime

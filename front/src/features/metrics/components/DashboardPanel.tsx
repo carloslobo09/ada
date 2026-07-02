@@ -5,6 +5,7 @@ import { HorizontalBar } from "@/features/metrics/components/HorizontalBar";
 import { KpiCard } from "@/features/metrics/components/KpiCard";
 import { Sparkline } from "@/features/metrics/components/Sparkline";
 import { useDashboardMetrics } from "@/features/metrics/hooks/useDashboardMetrics";
+import { extractApiMessage } from "@/lib/errors";
 
 const PRESETS = [
   { label: "7 dias", days: 7 },
@@ -110,7 +111,7 @@ export function DashboardPanel(): ReactNode {
 
       {isError && (
         <Alert variant="danger" title="No se pudieron cargar las metricas">
-          {error instanceof Error ? error.message : "Error desconocido."}
+          {extractApiMessage(error)}
         </Alert>
       )}
 

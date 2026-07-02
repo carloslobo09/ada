@@ -13,11 +13,23 @@ from app.api.routers import (
     tipos_documento,
     users,
 )
+from app.config import get_settings
 from app.db import init_db
+
+
+def _validate_settings() -> None:
+    """Falla al arranque con un mensaje claro si la configuracion es inconsistente."""
+    settings = get_settings()
+    if settings.extractor_mode == "gemini" and not settings.gemini_api_key:
+        raise RuntimeError(
+            "EXTRACTOR_MODE=gemini requiere GEMINI_API_KEY definida en el .env. "
+            "Definila o volve a EXTRACTOR_MODE=mock."
+        )
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    _validate_settings()
     init_db()
     yield
 

@@ -55,17 +55,17 @@ export function CreatePromptVersionPage(): ReactNode {
       setFormError("Todos los campos a extraer deben tener nombre tecnico y etiqueta.");
       return;
     }
-    if (crossFields.some((f) => !f.field.trim())) {
-      setFormError("Todos los campos de validacion cruzada deben tener un nombre.");
-      return;
-    }
+    // Descarta configs de validacion que quedaron huerfanas si el usuario
+    // renombro o elimino el campo despues de habilitarle la validacion.
+    const nombresVigentes = new Set(extractionFields.map((f) => f.name));
+    const crossVigentes = crossFields.filter((cf) => nombresVigentes.has(cf.field));
 
     mutation.mutate(
       {
         tipo_documento_id: tipoId,
         prompt_text: promptText,
         extraction_fields: extractionFields,
-        cross_validation_config: crossFields,
+        cross_validation_config: crossVigentes,
       },
       {
         onSuccess: (version) => {
@@ -86,7 +86,15 @@ export function CreatePromptVersionPage(): ReactNode {
   if (tipo.isError || !tipo.data) {
     return (
       <Alert variant="danger" title="No se pudo cargar el tipo documental">
-        {tipo.error instanceof Error ? tipo.error.message : "Tipo no encontrado."}
+        {extractApiMessage(tipo.error)}
+      </Alert>
+    );
+  }
+
+  if (baseId && base.isError) {
+    return (
+      <Alert variant="danger" title="No se pudo cargar la version base">
+        {extractApiMessage(base.error)}
       </Alert>
     );
   }

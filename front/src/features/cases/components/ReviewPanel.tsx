@@ -76,7 +76,10 @@ export function ReviewPanel({ caso }: ReviewPanelProps): ReactNode {
                 name="estado_recontrol"
                 value={opt.value}
                 checked={estado === opt.value}
-                onChange={() => setEstado(opt.value)}
+                onChange={() => {
+                  mutation.reset();
+                  setEstado(opt.value);
+                }}
                 className="mt-1"
               />
               <div>
@@ -93,7 +96,10 @@ export function ReviewPanel({ caso }: ReviewPanelProps): ReactNode {
           </span>
           <textarea
             value={observacion}
-            onChange={(e) => setObservacion(e.target.value)}
+            onChange={(e) => {
+              mutation.reset();
+              setObservacion(e.target.value);
+            }}
             rows={4}
             maxLength={2048}
             placeholder="Notas para alimentar la siguiente version del prompt..."

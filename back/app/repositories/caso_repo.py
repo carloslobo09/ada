@@ -34,6 +34,13 @@ class CasoRepository:
         self._session.refresh(caso)
         return caso
 
+    def mark_error(self, caso: Caso, *, ref_documento: str | None) -> Caso:
+        caso.ref_documento = ref_documento
+        caso.estado = "error_extraccion"
+        self._session.commit()
+        self._session.refresh(caso)
+        return caso
+
     def mark_review(
         self,
         caso: Caso,

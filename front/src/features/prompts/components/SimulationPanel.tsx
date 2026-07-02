@@ -13,6 +13,7 @@ import type {
   SimulationResult,
 } from "@/features/prompts/types";
 import { extractApiMessage } from "@/lib/errors";
+import { humanize } from "@/lib/strings";
 
 interface SimulationPanelProps {
   versionId: string;
@@ -179,13 +180,6 @@ function ResultPanel({ result, labels }: ResultPanelProps): ReactNode {
       )}
     </div>
   );
-}
-
-function humanize(key: string): string {
-  return key
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(" ");
 }
 
 function trimExpected(values: Record<string, string>): Record<string, string> | null {

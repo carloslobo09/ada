@@ -202,14 +202,18 @@ class MetricsService:
 
     @staticmethod
     def _parse_motivos(raw: str) -> list[str]:
-        """Extrae el identificador de cada motivo. Formato: 'nombre: detalle | nombre2: detalle | ...'."""
+        """Extrae el identificador de cada motivo.
+
+        Formato de entrada: 'nombre: detalle | cross:campo: detalle | ...'.
+        Se corta por ': ' (dos puntos + espacio) y no por ':' para conservar
+        el campo en los motivos de validacion cruzada ('cross:numero_dni').
+        """
         chunks = [chunk.strip() for chunk in raw.split("|")]
         names: list[str] = []
         for chunk in chunks:
             if not chunk:
                 continue
-            head, _, _ = chunk.partition(":")
-            head = head.strip()
+            head = chunk.split(": ", 1)[0].strip()
             if head:
                 names.append(head)
         return names

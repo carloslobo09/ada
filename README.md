@@ -46,6 +46,10 @@ Usuarios seed (rol entre parentesis):
 
 Contrasena por defecto: la definida en `back/.env` como `SEED_PASSWORD`.
 
+### Modo de extraccion
+
+Por defecto el sistema corre con `EXTRACTOR_MODE=mock` en `back/.env`: no invoca ningun modelo y devuelve respuestas de ejemplo, asi se puede recorrer toda la plataforma sin API key ni costo. Para procesar documentos reales, generar una API key gratuita en https://aistudio.google.com y cambiar a `EXTRACTOR_MODE=gemini` (pasos detallados en [back/README.md](back/README.md)). Tener en cuenta que el tier gratuito de Gemini puede no estar disponible en momentos de alta demanda; habilitar facturacion con un limite mensual bajo resuelve ese problema.
+
 ## Documentacion por servicio
 
 - [back/README.md](back/README.md)

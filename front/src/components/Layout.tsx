@@ -1,19 +1,13 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useAuth } from "@/features/auth/hooks/useAuth";
-import type { Rol } from "@/features/auth/types";
+import { ROL_LABEL, type Rol } from "@/features/auth/types";
 
 interface NavItem {
   to: string;
   label: string;
   allowedRoles?: Rol[];
 }
-
-const ROL_LABEL: Record<Rol, string> = {
-  cliente: "Cliente",
-  entrenador: "Entrenador",
-  admin: "Administrador",
-};
 
 function buildNav(rol: Rol | undefined): NavItem[] {
   const casosLabel = rol === "cliente" ? "Mis casos" : "Re Control";

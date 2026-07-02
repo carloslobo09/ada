@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -10,6 +10,9 @@ from app.db import Base
 
 class PromptVersion(Base):
     __tablename__ = "prompt_versions"
+    __table_args__ = (
+        UniqueConstraint("tipo_documento_id", "numero", name="uq_prompt_version_numero"),
+    )
 
     id: Mapped[str] = mapped_column(
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())

@@ -1,4 +1,3 @@
-import json
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
@@ -13,9 +12,9 @@ from app.api.dependencies import (
     get_storage,
     require_roles,
 )
+from app.api.uploads import parse_expected, read_validated_file
 from app.models.usuario import Usuario
 from app.schemas.caso import (
-    CasoClienteListItem,
     CasoClienteListOut,
     CasoClienteOut,
     CasoListItem,
@@ -34,11 +33,6 @@ from app.services.extraction.errors import (
 from app.storage.filesystem import FilesystemStorage
 
 router = APIRouter(prefix="/cases", tags=["cases"])
-
-ALLOWED_MIME: frozenset[str] = frozenset(
-    {"image/jpeg", "image/png", "image/webp", "application/pdf"}
-)
-MAX_BYTES = 10 * 1024 * 1024
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -62,20 +56,8 @@ async def create_case(
         ),
     ] = None,
 ) -> CasoOut | CasoClienteOut:
-    if file.content_type not in ALLOWED_MIME:
-        raise HTTPException(
-            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail=f"Tipo de archivo no soportado: {file.content_type}",
-        )
-
-    content = await file.read()
-    if len(content) > MAX_BYTES:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"El archivo supera el limite de {MAX_BYTES // (1024 * 1024)} MB.",
-        )
-
-    parsed_expected = _parse_expected(expected)
+    content = await read_validated_file(file)
+    parsed_expected = parse_expected(expected)
 
     service = build_caso_service_for_tipo(
         session=session,
@@ -184,30 +166,3 @@ def _ensure_visible_to_user(caso, user: Usuario) -> None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Caso no encontrado."
         )
-
-
-def _parse_expected(raw: str | None) -> dict[str, str] | None:
-    if raw is None or raw.strip() == "":
-        return None
-    try:
-        parsed = json.loads(raw)
-    except json.JSONDecodeError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"El campo 'expected' no es un JSON valido: {exc.msg}.",
-        ) from exc
-    if not isinstance(parsed, dict):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El campo 'expected' debe ser un objeto JSON con pares campo: valor.",
-        )
-    invalid_values = [k for k, v in parsed.items() if not isinstance(v, str)]
-    if invalid_values:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                "Todos los valores en 'expected' deben ser strings. "
-                f"Campos invalidos: {', '.join(invalid_values)}."
-            ),
-        )
-    return parsed

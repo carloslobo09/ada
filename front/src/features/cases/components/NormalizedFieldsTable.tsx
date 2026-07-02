@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { humanize } from "@/lib/strings";
 
 interface NormalizedFieldsTableProps {
   data: Record<string, unknown>;
@@ -30,13 +31,6 @@ export function NormalizedFieldsTable({
       ))}
     </dl>
   );
-}
-
-function humanize(key: string): string {
-  return key
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(" ");
 }
 
 function formatValue(value: unknown): string {

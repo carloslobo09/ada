@@ -116,12 +116,20 @@ def build_caso_service_for_tipo(
 
     tipo_service = TipoDocumentoService(TipoDocumentoRepository(session))
     tipo = tipo_service.get(tipo_documento_id)
+    if tipo.estado != "activo":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"El tipo de documento '{tipo.nombre}' esta inactivo y no acepta "
+                "casos nuevos."
+            ),
+        )
 
     extractor = build_extractor(
         settings, version.prompt_text, version.extraction_fields
     )
     cross_engine = CrossValidationEngine.from_config_dicts(version.cross_validation_config)
-    rule_engine = RuleEngine(rules_for_tipo(tipo.nombre))
+    rule_engine = RuleEngine(rules_for_tipo(tipo.slug))
 
     return CasoService(
         caso_repository=CasoRepository(session),

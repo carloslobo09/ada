@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Button } from "@/components/Button";
-import type { Rol } from "@/features/auth/types";
+import { ROL_LABEL } from "@/features/auth/types";
 import type { Usuario } from "@/features/users/types";
 
 interface UsersTableProps {
@@ -11,12 +11,6 @@ interface UsersTableProps {
   onResetPassword: (usuario: Usuario) => void;
   busyId?: string | null;
 }
-
-const ROL_LABEL: Record<Rol, string> = {
-  cliente: "Cliente",
-  entrenador: "Entrenador",
-  admin: "Administrador",
-};
 
 export function UsersTable({
   usuarios,

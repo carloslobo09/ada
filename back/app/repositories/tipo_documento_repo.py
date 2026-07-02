@@ -19,14 +19,22 @@ class TipoDocumentoRepository:
         stmt = select(TipoDocumento).where(TipoDocumento.nombre == nombre)
         return self._session.scalars(stmt).first()
 
+    def get_by_slug(self, slug: str) -> TipoDocumento | None:
+        stmt = select(TipoDocumento).where(TipoDocumento.slug == slug)
+        return self._session.scalars(stmt).first()
+
     def list(self, *, solo_activos: bool = False) -> list[TipoDocumento]:
         stmt = select(TipoDocumento).order_by(TipoDocumento.nombre.asc())
         if solo_activos:
             stmt = stmt.where(TipoDocumento.estado == "activo")
         return list(self._session.scalars(stmt))
 
-    def create(self, *, nombre: str, descripcion: str | None) -> TipoDocumento:
-        tipo = TipoDocumento(nombre=nombre, descripcion=descripcion, estado="activo")
+    def create(
+        self, *, nombre: str, slug: str, descripcion: str | None
+    ) -> TipoDocumento:
+        tipo = TipoDocumento(
+            nombre=nombre, slug=slug, descripcion=descripcion, estado="activo"
+        )
         self._session.add(tipo)
         self._session.commit()
         self._session.refresh(tipo)

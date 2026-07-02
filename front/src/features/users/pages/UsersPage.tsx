@@ -31,6 +31,21 @@ export function UsersPage(): ReactNode {
   const [showCreate, setShowCreate] = useState<boolean>(false);
   const [resetting, setResetting] = useState<Usuario | null>(null);
 
+  function openCreate(): void {
+    create.reset();
+    setShowCreate(true);
+  }
+
+  function openEdit(usuario: Usuario): void {
+    update.reset();
+    setEditing(usuario);
+  }
+
+  function openReset(usuario: Usuario): void {
+    reset.reset();
+    setResetting(usuario);
+  }
+
   function handleCreate(payload: CreateUserInput): void {
     create.mutate(payload, { onSuccess: () => setShowCreate(false) });
   }
@@ -80,7 +95,7 @@ export function UsersPage(): ReactNode {
           </p>
         </div>
         {!showCreate && (
-          <Button onClick={() => setShowCreate(true)}>Nuevo usuario</Button>
+          <Button onClick={openCreate}>Nuevo usuario</Button>
         )}
       </header>
 
@@ -109,9 +124,15 @@ export function UsersPage(): ReactNode {
         </div>
       )}
 
+      {update.error && !editing && (
+        <Alert variant="danger" title="No se pudo actualizar el estado">
+          {extractApiMessage(update.error)}
+        </Alert>
+      )}
+
       {list.isError && (
         <Alert variant="danger" title="No se pudieron cargar los usuarios">
-          {list.error instanceof Error ? list.error.message : "Error desconocido."}
+          {extractApiMessage(list.error)}
         </Alert>
       )}
 
@@ -119,9 +140,9 @@ export function UsersPage(): ReactNode {
         <UsersTable
           usuarios={list.data}
           currentUserId={user.id}
-          onEdit={setEditing}
+          onEdit={openEdit}
           onToggleEstado={handleToggleEstado}
-          onResetPassword={setResetting}
+          onResetPassword={openReset}
           busyId={busyId}
         />
       )}

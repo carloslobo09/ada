@@ -33,7 +33,7 @@ export function PromptVersionDetailPage(): ReactNode {
   if (isError || !data) {
     return (
       <Alert variant="danger" title="No se pudo cargar la version">
-        {error instanceof Error ? error.message : "Version no encontrada."}
+        {extractApiMessage(error)}
       </Alert>
     );
   }

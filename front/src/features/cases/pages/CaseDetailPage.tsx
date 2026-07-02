@@ -7,6 +7,7 @@ import { CaseClienteResultPanel } from "@/features/cases/components/CaseClienteR
 import { CaseResultPanel } from "@/features/cases/components/CaseResultPanel";
 import { ReviewPanel } from "@/features/cases/components/ReviewPanel";
 import { useGetCase, useGetCaseCliente } from "@/features/cases/hooks/useGetCase";
+import { extractApiMessage } from "@/lib/errors";
 
 export function CaseDetailPage(): ReactNode {
   const { user } = useAuth();
@@ -30,7 +31,7 @@ function ClienteView(): ReactNode {
   if (isError || !data) {
     return (
       <Alert variant="danger" title="No se pudo cargar el caso">
-        {error instanceof Error ? error.message : "Caso no encontrado."}
+        {extractApiMessage(error)}
       </Alert>
     );
   }
@@ -60,7 +61,7 @@ function EntrenadorView(): ReactNode {
   if (isError || !data) {
     return (
       <Alert variant="danger" title="No se pudo cargar el caso">
-        {error instanceof Error ? error.message : "Caso no encontrado."}
+        {extractApiMessage(error)}
       </Alert>
     );
   }

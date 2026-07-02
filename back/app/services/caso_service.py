@@ -12,6 +12,7 @@ from app.repositories.decision_repo import DecisionRepository
 from app.repositories.documento_repo import DocumentoRepository
 from app.services.cross_validation.engine import CrossValidationEngine
 from app.services.decision_aggregator import aggregate
+from app.services.extraction.errors import ExtractorError
 from app.services.extraction.protocol import Extractor
 from app.services.normalization import normalize_extraction
 from app.services.rules.engine import RuleEngine, RuleResult
@@ -73,7 +74,15 @@ class CasoService:
                     estado="rechazado_pre_llm",
                 )
 
-        extraction = self._extractor.extract(Path(documento.ubicacion_s3), content_type)
+        try:
+            extraction = self._extractor.extract(
+                Path(documento.ubicacion_s3), content_type
+            )
+        except ExtractorError:
+            # El caso no queda huerfano en "recibido": se marca con error y se
+            # propaga la excepcion para que el router responda el status correcto.
+            self._casos.mark_error(caso, ref_documento=documento.id)
+            raise
         normalized = normalize_extraction(extraction)
         rule_results = self._rule_engine.evaluate(normalized)
 

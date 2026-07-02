@@ -43,7 +43,7 @@ class SimulationService:
     ) -> SimulationOut:
         version = self._prompt_version_service.get(version_id)
         tipo = self._tipo_documento_service.get(version.tipo_documento_id)
-        rule_engine = RuleEngine(self._rules_resolver(tipo.nombre))
+        rule_engine = RuleEngine(self._rules_resolver(tipo.slug))
 
         extractor = build_extractor(
             self._settings, version.prompt_text, version.extraction_fields

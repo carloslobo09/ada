@@ -121,6 +121,20 @@ El admin no puede modificar su propio rol/estado ni resetearse la propia contras
 
 Ver `.env.example` con notas y el comando para regenerar `JWT_SECRET`.
 
+### Modo mock vs Gemini
+
+Por defecto el extractor corre en modo `mock`: no invoca ningun modelo y devuelve una respuesta de ejemplo deterministica basada en los campos configurados en la version de prompt. Esto permite probar la plataforma completa (pipeline, reglas, validacion cruzada, Re Control, metricas) sin API key ni costo.
+
+Para procesar documentos reales con Gemini:
+
+1. Entrar a https://aistudio.google.com con una cuenta de Google.
+2. Menu "Get API key", opcion "Create API key".
+3. Copiar la key en `back/.env` como `GEMINI_API_KEY=...`.
+4. Cambiar `EXTRACTOR_MODE=gemini` en `back/.env`.
+5. Recrear el servicio: `docker compose up -d back`.
+
+Aviso sobre el tier gratuito: las API keys gratuitas comparten capacidad y en momentos de alta demanda Google puede devolver errores 429 o 503, o directamente no atender solicitudes durante un rato. Si eso pasa, las opciones son reintentar mas tarde, volver a `EXTRACTOR_MODE=mock`, o habilitar facturacion en Google AI Studio: un plan prepago con un limite mensual bajo (1 o 2 dolares) alcanza de sobra para este demo y elimina el problema de disponibilidad. La plataforma ya maneja estos errores con mensajes legibles, asi que un fallo upstream no rompe la experiencia.
+
 ## Levantar en local sin Docker
 
 ```bash

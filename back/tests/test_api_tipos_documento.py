@@ -29,6 +29,7 @@ def test_create_tipo(client: TestClient) -> None:
     assert response.status_code == 201
     body = response.json()
     assert body["nombre"] == "Pasaporte Argentino"
+    assert body["slug"] == "pasaporte-argentino"
     assert body["estado"] == "activo"
 
 
@@ -55,3 +56,45 @@ def test_filtrar_solo_activos(client: TestClient, seeded_tipo_id: str) -> None:
     assert response.status_code == 200
     nombres = [t["nombre"] for t in response.json()]
     assert "DNI Argentino" not in nombres
+
+
+def test_renombrar_tipo_no_cambia_el_slug(
+    client: TestClient, seeded_tipo_id: str
+) -> None:
+    response = client.patch(
+        f"/document-types/{seeded_tipo_id}", json={"nombre": "DNI Renombrado"}
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["nombre"] == "DNI Renombrado"
+    assert body["slug"] == "dni-argentino"
+
+
+def test_delete_tipo_con_versiones_devuelve_409(
+    client: TestClient, seeded_tipo_id: str
+) -> None:
+    response = client.delete(f"/document-types/{seeded_tipo_id}")
+    assert response.status_code == 409
+
+
+def test_delete_tipo_sin_versiones_funciona(client: TestClient) -> None:
+    created = client.post(
+        "/document-types",
+        json={"nombre": "Tipo Temporal", "descripcion": "Para borrar."},
+    ).json()
+    response = client.delete(f"/document-types/{created['id']}")
+    assert response.status_code == 204
+
+
+def test_tipo_inactivo_rechaza_casos_nuevos(
+    client: TestClient, seeded_tipo_id: str
+) -> None:
+    import io
+
+    client.patch(f"/document-types/{seeded_tipo_id}", json={"estado": "inactivo"})
+    response = client.post(
+        "/cases",
+        files={"file": ("dni.png", io.BytesIO(b"x"), "image/png")},
+        data={"tipo_documento_id": seeded_tipo_id},
+    )
+    assert response.status_code == 409

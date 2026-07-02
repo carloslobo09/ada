@@ -5,6 +5,7 @@ import { Spinner } from "@/components/Spinner";
 import { useGetTipoDocumento } from "@/features/document-types/hooks/useGetTipoDocumento";
 import { PromptVersionsTable } from "@/features/prompts/components/PromptVersionsTable";
 import { useListPromptVersions } from "@/features/prompts/hooks/useListPromptVersions";
+import { extractApiMessage } from "@/lib/errors";
 
 export function TipoDocumentoDetailPage(): ReactNode {
   const { tipoId } = useParams<{ tipoId: string }>();
@@ -22,7 +23,7 @@ export function TipoDocumentoDetailPage(): ReactNode {
   if (tipo.isError || !tipo.data) {
     return (
       <Alert variant="danger" title="No se pudo cargar el tipo documental">
-        {tipo.error instanceof Error ? tipo.error.message : "Tipo no encontrado."}
+        {extractApiMessage(tipo.error)}
       </Alert>
     );
   }
@@ -74,9 +75,7 @@ export function TipoDocumentoDetailPage(): ReactNode {
 
         {versiones.isError && (
           <Alert variant="danger" title="No se pudieron cargar las versiones">
-            {versiones.error instanceof Error
-              ? versiones.error.message
-              : "Error desconocido."}
+            {extractApiMessage(versiones.error)}
           </Alert>
         )}
 

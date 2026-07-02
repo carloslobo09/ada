@@ -1,6 +1,7 @@
 from collections.abc import Iterator
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import get_settings
@@ -8,6 +9,14 @@ from app.config import get_settings
 
 class Base(DeclarativeBase):
     pass
+
+
+@event.listens_for(Engine, "connect")
+def _enable_sqlite_foreign_keys(dbapi_connection, _connection_record) -> None:
+    """SQLite ignora las FK salvo que se active el pragma por conexion."""
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
 
 
 _settings = get_settings()

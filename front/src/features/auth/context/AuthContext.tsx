@@ -2,6 +2,7 @@ import { createContext, useCallback, useEffect, useState, type ReactNode } from 
 import { fetchMe, login as loginRequest } from "@/features/auth/api/authClient";
 import type { LoginRequest, Usuario } from "@/features/auth/types";
 import { clearToken, readToken, storeToken } from "@/lib/apiClient";
+import { queryClient } from "@/lib/queryClient";
 
 interface AuthContextValue {
   user: Usuario | null;
@@ -45,6 +46,9 @@ export function AuthProvider({ children }: AuthProviderProps): ReactNode {
   const logout = useCallback((): void => {
     clearToken();
     setUser(null);
+    // Sin esto, el proximo usuario que inicie sesion en la misma pestana veria
+    // datos cacheados del usuario anterior hasta que expire el staleTime.
+    queryClient.clear();
   }, []);
 
   return (

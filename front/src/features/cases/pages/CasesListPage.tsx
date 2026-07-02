@@ -12,6 +12,7 @@ import type {
   EstadoRecontrol,
 } from "@/features/cases/types";
 import { DashboardPanel } from "@/features/metrics/components/DashboardPanel";
+import { extractApiMessage } from "@/lib/errors";
 
 type Tab = EstadoRecontrol | "todos";
 
@@ -92,7 +93,7 @@ function EntrenadorView(): ReactNode {
 
         {isError && (
           <Alert variant="danger" title="No se pudo cargar la bandeja">
-            {error instanceof Error ? error.message : "Error desconocido."}
+            {extractApiMessage(error)}
           </Alert>
         )}
 
@@ -126,7 +127,7 @@ function ClienteView(): ReactNode {
 
       {isError && (
         <Alert variant="danger" title="No se pudo cargar la lista">
-          {error instanceof Error ? error.message : "Error desconocido."}
+          {extractApiMessage(error)}
         </Alert>
       )}
 

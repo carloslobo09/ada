@@ -1,11 +1,18 @@
 export type Rol = "cliente" | "entrenador" | "admin";
+export type EstadoUsuario = "activo" | "inactivo";
+
+export const ROL_LABEL: Record<Rol, string> = {
+  cliente: "Cliente",
+  entrenador: "Entrenador",
+  admin: "Administrador",
+};
 
 export interface Usuario {
   id: string;
   email: string;
   nombre: string;
   rol: Rol;
-  estado: string;
+  estado: EstadoUsuario;
   fecha_alta: string;
 }
 
